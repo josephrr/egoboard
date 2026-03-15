@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Sora', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --color-ink: #1f2937;
+    --color-paper: #fffaf2;
+    --color-accent: #c2410c;
+    --color-accent-soft: #fed7aa;
+    --color-board: #f7efe4;
+}
+
+@layer base {
+    body {
+        @apply bg-[var(--color-paper)] text-[var(--color-ink)] antialiased;
+        background-image:
+            radial-gradient(circle at top left, rgba(194, 65, 12, 0.16), transparent 24rem),
+            radial-gradient(circle at bottom right, rgba(15, 118, 110, 0.14), transparent 28rem),
+            linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 250, 242, 0.95));
+    }
+}
+
+@layer components {
+    .hero-card {
+        @apply rounded-[2rem] border border-white/70 bg-white/75 shadow-[0_20px_70px_rgba(15,23,42,0.12)] backdrop-blur;
+    }
+
+    .field-input {
+        @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100;
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-orange-600 focus:outline-none focus:ring-4 focus:ring-orange-200;
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50;
+    }
+
+    .note-card {
+        @apply relative overflow-hidden rounded-[1.75rem] border border-black/5 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.12)] transition duration-300 hover:-translate-y-1 hover:rotate-0;
+        transform: rotate(-1deg);
+    }
+
+    .board-shell {
+        @apply rounded-[2.5rem] border border-white/60 bg-[color:var(--color-board)]/75 p-4 shadow-[0_28px_80px_rgba(15,23,42,0.14)];
+        background-image:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.18)),
+            radial-gradient(circle at top, rgba(251, 146, 60, 0.16), transparent 20rem);
+    }
+
+    .board-grid {
+        @apply rounded-[2rem] border border-black/5 bg-white/25 p-5 sm:p-7;
+        background-image:
+            linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+        background-size: 2rem 2rem;
+    }
+
+    .modal-panel {
+        @apply w-full max-w-xl rounded-[2rem] border border-white/70 bg-white p-7 shadow-[0_30px_80px_rgba(15,23,42,0.22)] sm:p-8;
+    }
+
+    .note-yellow {
+        @apply bg-amber-100;
+    }
+
+    .note-blue {
+        @apply bg-sky-100;
+    }
+
+    .note-green {
+        @apply bg-emerald-100;
+    }
+
+    .note-rose {
+        @apply bg-rose-100;
+    }
+
+    .note-orange {
+        @apply bg-orange-100;
+    }
+}

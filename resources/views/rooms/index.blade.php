@@ -2,11 +2,14 @@
     <main class="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
         <section class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <div class="hero-card p-8 sm:p-10">
+                <span class="inline-flex rounded-full bg-slate-950 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.28em] text-white">
+                    Publico para estudiantes, privado para docente
+                </span>
                 <h1 class="mt-6 max-w-3xl font-[var(--font-display)] text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">
                     Crea un muro compartible para que tu clase deje notas en segundos.
                 </h1>
                 <p class="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-                    Genera una sala, copia el enlace y tus estudiantes podran escribir su nombre y su nota. Todo queda separado por sala y ordenado automaticamente.
+                    Genera una sala, comparte el enlace publico con tu grupo y conserva un enlace secreto para moderar, exportar y administrar el tablero.
                 </p>
 
                 <div class="mt-8 grid gap-4 sm:grid-cols-3">
@@ -28,6 +31,7 @@
             <div class="hero-card p-8">
                 <p class="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">Nueva sala</p>
                 <h2 class="mt-3 font-[var(--font-display)] text-3xl font-bold text-slate-950">Prepara tu enlace</h2>
+                <p class="mt-3 text-sm leading-6 text-slate-500">Al crearla recibiras un link publico para tus estudiantes y otro privado para ti.</p>
 
                 <form method="POST" action="{{ route('rooms.store') }}" class="mt-8 space-y-5">
                     @csrf
@@ -43,6 +47,18 @@
                         <label for="description" class="mb-2 block text-sm font-medium text-slate-700">Descripcion corta</label>
                         <textarea id="description" name="description" rows="3" class="field-input" placeholder="Ej. Problemas reales detectados por los estudiantes">{{ old('description') }}</textarea>
                         @error('description')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="theme" class="mb-2 block text-sm font-medium text-slate-700">Tema visual</label>
+                        <select id="theme" name="theme" class="field-input" required>
+                            <option value="sunrise" @selected(old('theme', 'sunrise') === 'sunrise')>Sunrise</option>
+                            <option value="ocean" @selected(old('theme') === 'ocean')>Ocean</option>
+                            <option value="forest" @selected(old('theme') === 'forest')>Forest</option>
+                        </select>
+                        @error('theme')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
@@ -82,7 +98,10 @@
                             @if ($room->description)
                                 <p class="mt-4 line-clamp-3 text-sm leading-6 text-slate-600">{{ $room->description }}</p>
                             @endif
-                            <p class="mt-6 text-sm font-semibold text-slate-950 group-hover:text-orange-700">Abrir sala</p>
+                            <div class="mt-6 flex items-center justify-between">
+                                <p class="text-sm font-semibold text-slate-950 group-hover:text-orange-700">Abrir sala publica</p>
+                                <span class="text-xs uppercase tracking-[0.2em] text-slate-400">{{ \App\Models\Room::THEMES[$room->theme]['name'] ?? 'Theme' }}</span>
+                            </div>
                         </a>
                     @endforeach
                 </div>

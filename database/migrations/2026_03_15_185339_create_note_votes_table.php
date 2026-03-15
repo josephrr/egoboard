@@ -13,7 +13,12 @@ return new class extends Migration
     {
         Schema::create('note_votes', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('note_id')->constrained()->cascadeOnDelete();
+            $table->string('participant_key', 100);
+            $table->string('reaction', 40);
             $table->timestamps();
+
+            $table->unique(['note_id', 'participant_key', 'reaction']);
         });
     }
 

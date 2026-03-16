@@ -9,6 +9,7 @@
         <link href="https://fonts.bunny.net/css?family=sora:400,500,600,700,800|space-grotesk:500,700" rel="stylesheet" />
         @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
             @vite(['resources/css/app.css', 'resources/js/app.js'])
+            @stack('page_vite')
         @endif
     </head>
     <body>

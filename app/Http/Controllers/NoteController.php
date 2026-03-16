@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Note;
-use App\Models\NoteVote;
 use App\Models\Room;
-use Illuminate\Contracts\Routing\ResponseFactory;
-use Illuminate\Database\Eloquent\Builder;
+use App\Services\NoteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -14,18 +12,17 @@ use Illuminate\Validation\Rule;
 
 class NoteController extends Controller
 {
-    private const COLORS = [
-        'note-yellow',
-        'note-blue',
-        'note-green',
-        'note-rose',
-        'note-orange',
-    ];
+    public function __construct(
+        private readonly NoteService $noteService
+    ) {
+    }
 
-    public function store(Request $request, Room $room): RedirectResponse
+    public function store(Request $request, Room $room): RedirectResponse|JsonResponse
     {
         if ($room->isClosed()) {
-            return back()->with('status', 'Esta sala esta cerrada y ya no recibe nuevas notas.');
+            return $request->expectsJson()
+                ? response()->json(['message' => 'Esta sala esta cerrada y ya no recibe nuevas notas.'], 422)
+                : back()->with('status', 'Esta sala esta cerrada y ya no recibe nuevas notas.');
         }
 
         $validated = $request->validate([
@@ -39,41 +36,55 @@ class NoteController extends Controller
         $isAnonymous = $room->allow_anonymous && $request->boolean('is_anonymous');
 
         if (! $isAnonymous && blank($validated['author_name'])) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Escribe tu nombre o activa el modo anonimo.',
+                    'errors' => ['author_name' => ['Escribe tu nombre o activa el modo anonimo.']],
+                ], 422);
+            }
+
             return back()->withErrors([
                 'author_name' => 'Escribe tu nombre o activa el modo anonimo.',
             ])->withInput();
         }
 
         if (
-            $room->allow_one_note_per_participant &&
-            $room->notes()->where('participant_key', $validated['participant_key'])->exists()
+            ! $this->noteService->participantCanSubmit($room, $validated['participant_key'])
         ) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Esta sala permite una sola nota por participante.',
+                    'errors' => ['message' => ['Esta sala permite una sola nota por participante.']],
+                ], 422);
+            }
+
             return back()->withErrors([
                 'message' => 'Esta sala permite una sola nota por participante.',
             ])->withInput();
         }
 
-        $room->notes()->create([
-            'author_name' => $isAnonymous ? 'Anonimo' : $validated['author_name'],
-            'message' => $validated['message'],
-            'color' => self::COLORS[array_rand(self::COLORS)],
-            'participant_key' => $validated['participant_key'],
-            'category' => $validated['category'],
-            'is_anonymous' => $isAnonymous,
-            'is_visible' => true,
-        ]);
+        $this->noteService->create($room, $validated, $isAnonymous);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Nota publicada correctamente.',
+            ]);
+        }
 
         return redirect()
             ->route('rooms.show', $room)
             ->with('status', 'Nota publicada correctamente.');
     }
 
-    public function react(Request $request, Room $room, Note $note): RedirectResponse
+    public function react(Request $request, Room $room, Note $note): RedirectResponse|JsonResponse
     {
         abort_unless($note->room_id === $room->id, 404);
 
         if (! $room->allow_reactions || ! $note->is_visible) {
-            return back();
+            return $request->expectsJson()
+                ? response()->json(['ok' => false], 422)
+                : back();
         }
 
         $validated = $request->validate([
@@ -81,19 +92,16 @@ class NoteController extends Controller
             'reaction' => ['required', Rule::in(array_keys(Note::REACTIONS))],
         ]);
 
-        $vote = NoteVote::query()->where([
-            'note_id' => $note->id,
-            'participant_key' => $validated['participant_key'],
-            'reaction' => $validated['reaction'],
-        ])->first();
+        $active = $this->noteService->toggleReaction(
+            $note,
+            $validated['participant_key'],
+            $validated['reaction']
+        );
 
-        if ($vote) {
-            $vote->delete();
-        } else {
-            NoteVote::create([
-                'note_id' => $note->id,
-                'participant_key' => $validated['participant_key'],
-                'reaction' => $validated['reaction'],
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'active' => $active,
             ]);
         }
 

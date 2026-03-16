@@ -92,12 +92,7 @@ test('room state endpoint returns json for polling', function () {
     $response = $this->getJson(route('rooms.state', $room));
 
     $response->assertOk();
-    $response->assertJsonStructure([
-        'room_updated_at',
-        'note_count',
-        'last_note_at',
-        'last_vote_at',
-    ]);
+    $response->assertJsonStructure(['signature']);
 });
 
 test('teacher print export view loads', function () {
@@ -117,6 +112,96 @@ test('teacher print export view loads', function () {
 
     $response->assertOk();
     $response->assertSee('Guardar o imprimir como PDF');
+});
+
+test('room board endpoint returns partial html for polling', function () {
+    $room = Room::create([
+        'name' => 'Sala tablero',
+        'slug' => 'sala-tablero',
+        'description' => 'Sala de ejemplo',
+        'admin_token' => 'board-room-token',
+        'theme' => 'sunrise',
+        'is_open' => true,
+        'allow_anonymous' => true,
+        'allow_reactions' => true,
+        'allow_one_note_per_participant' => false,
+    ]);
+
+    $room->notes()->create([
+        'author_name' => 'Marta',
+        'message' => 'Necesitamos mas espacios de estudio.',
+        'color' => 'note-yellow',
+        'participant_key' => 'participant-board',
+        'category' => 'oportunidad',
+        'is_anonymous' => false,
+        'is_visible' => true,
+    ]);
+
+    $response = $this->getJson(route('rooms.board', $room));
+
+    $response->assertOk();
+    $response->assertJsonStructure(['signature', 'html']);
+    $response->assertJsonFragment([
+        'signature' => $response->json('signature'),
+    ]);
+});
+
+test('teacher qr endpoint returns svg locally', function () {
+    $room = Room::create([
+        'name' => 'Sala qr',
+        'slug' => 'sala-qr',
+        'description' => 'Sala de ejemplo',
+        'admin_token' => 'qr-room-token',
+        'theme' => 'sunrise',
+        'is_open' => true,
+        'allow_anonymous' => true,
+        'allow_reactions' => true,
+        'allow_one_note_per_participant' => false,
+    ]);
+
+    $response = $this->get(route('rooms.qr', $room->admin_token));
+
+    $response->assertOk();
+    $response->assertHeader('Content-Type', 'image/svg+xml');
+    $response->assertSee('<svg', false);
+});
+
+test('note reaction can be toggled with json request', function () {
+    $room = Room::create([
+        'name' => 'Sala reacciones',
+        'slug' => 'sala-reacciones',
+        'description' => 'Sala de ejemplo',
+        'admin_token' => 'reaction-room-token',
+        'theme' => 'sunrise',
+        'is_open' => true,
+        'allow_anonymous' => true,
+        'allow_reactions' => true,
+        'allow_one_note_per_participant' => false,
+    ]);
+
+    $note = $room->notes()->create([
+        'author_name' => 'Eva',
+        'message' => 'Hace falta mejor comunicacion entre cursos.',
+        'color' => 'note-blue',
+        'participant_key' => 'participant-react',
+        'category' => 'problema',
+        'is_anonymous' => false,
+        'is_visible' => true,
+    ]);
+
+    $response = $this->postJson(route('rooms.notes.react', [$room, $note]), [
+        'participant_key' => 'participant-voter',
+        'reaction' => 'me_pasa',
+    ]);
+
+    $response->assertOk();
+    $response->assertJson(['ok' => true, 'active' => true]);
+
+    $this->assertDatabaseHas('note_votes', [
+        'note_id' => $note->id,
+        'participant_key' => 'participant-voter',
+        'reaction' => 'me_pasa',
+    ]);
 });
 
 test('anonymous note can be added when room allows it', function () {

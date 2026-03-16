@@ -4,6 +4,9 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{{ $room->name }} | Exportacion PDF</title>
+        @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+            @vite('resources/js/pages/room-print.js')
+        @endif
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -105,9 +108,9 @@
             }
         </style>
     </head>
-    <body>
+    <body data-print-page>
         <div class="actions">
-            <button class="button" onclick="window.print()">Guardar o imprimir como PDF</button>
+            <button class="button" data-print-button>Guardar o imprimir como PDF</button>
         </div>
 
         <header class="header">

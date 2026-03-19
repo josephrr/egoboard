@@ -9,11 +9,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Room extends Model
 {
+    public const TYPES = [
+        'notes' => 'Muro de notas',
+        'questions' => 'Sala de preguntas',
+    ];
+
     protected $fillable = [
         'name',
         'slug',
         'description',
         'admin_token',
+        'room_type',
         'is_open',
         'allow_anonymous',
         'allow_reactions',
@@ -53,6 +59,11 @@ class Room extends Model
         return $this->hasMany(Note::class);
     }
 
+    public function questions(): HasMany
+    {
+        return $this->hasMany(Question::class)->orderBy('position');
+    }
+
     public function visibleNotes(): HasMany
     {
         return $this->notes()->where('is_visible', true);
@@ -75,6 +86,21 @@ class Room extends Model
     public function isClosed(): bool
     {
         return ! $this->is_open || ($this->closes_at instanceof CarbonInterface && $this->closes_at->isPast());
+    }
+
+    public function isQuestionRoom(): bool
+    {
+        return $this->room_type === 'questions';
+    }
+
+    public function isNoteRoom(): bool
+    {
+        return ! $this->isQuestionRoom();
+    }
+
+    public function typeLabel(): string
+    {
+        return self::TYPES[$this->room_type] ?? self::TYPES['notes'];
     }
 
     public function themeConfig(): array

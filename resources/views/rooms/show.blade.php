@@ -2,14 +2,18 @@
     @vite('resources/js/pages/room-show.js')
 @endpush
 
-<x-layouts.app :title="$room->name.' | Muro de notas'" :description="$room->description ?: 'Sala publica para notas compartidas.'">
+<x-layouts.app :title="$room->name.' | '.$room->typeLabel()" :description="$room->description ?: 'Sala publica para participacion compartida.'">
     @php
         $hasErrors = $errors->any();
     @endphp
 
     <main
         class="mx-auto flex min-h-screen w-full max-w-[96rem] flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8 lg:py-12"
-        data-note-wall
+        @if ($room->isNoteRoom())
+            data-note-wall
+        @else
+            data-question-room
+        @endif
         data-room-slug="{{ $room->slug }}"
         data-open-on-load="{{ $hasErrors ? 'true' : 'false' }}"
         data-state-url="{{ route('rooms.state', $room) }}"
@@ -21,7 +25,7 @@
                 <div class="max-w-4xl">
                     <div class="flex flex-wrap items-center gap-3">
                         <a href="{{ route('rooms.index') }}" class="text-sm font-semibold text-slate-500 transition hover:text-slate-900">Volver al inicio</a>
-                        <span class="rounded-full {{ $theme['badge'] }} px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em]">Sala publica</span>
+                        <span class="rounded-full {{ $theme['badge'] }} px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em]">{{ $room->typeLabel() }}</span>
                         @if ($room->isClosed())
                             <span class="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-rose-700">Cerrada</span>
                         @endif
@@ -35,7 +39,7 @@
                     @endif
                 </div>
 
-                @if (! $room->isClosed())
+                @if (! $room->isClosed() && $room->isNoteRoom())
                     <div class="flex flex-wrap gap-3">
                         <button type="button" class="btn-primary" data-open-note-modal>Dejar una nota</button>
                     </div>
@@ -49,13 +53,51 @@
 
         <div class="hidden rounded-3xl border px-5 py-4 text-sm font-medium" data-status-banner></div>
 
-        <x-rooms.filters :room="$room" :filters="$filters" />
+        @if ($room->isNoteRoom())
+            <x-rooms.filters :room="$room" :filters="$filters" />
+        @endif
 
         <div data-board-region>
-            @include('rooms.partials.board', ['room' => $room, 'notes' => $notes, 'boardSignature' => $boardSignature])
+            @if ($room->isQuestionRoom())
+                @include('rooms.partials.question-board', ['room' => $room, 'questions' => $questions, 'boardSignature' => $boardSignature])
+            @else
+                @include('rooms.partials.board', ['room' => $room, 'notes' => $notes, 'boardSignature' => $boardSignature])
+            @endif
         </div>
 
-        @if (! $room->isClosed())
+        @if ($room->isQuestionRoom() && ! $room->isClosed())
+            <div class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" data-name-modal>
+                <div class="absolute inset-0" data-close-name-modal></div>
+
+                <div class="modal-panel relative">
+                    <button
+                        type="button"
+                        class="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900"
+                        data-close-name-modal
+                    >
+                        X
+                    </button>
+
+                    <p class="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">Antes de responder</p>
+                    <h2 class="mt-3 font-[var(--font-display)] text-3xl font-bold text-slate-950">Nombre completo</h2>
+                    <p class="mt-3 text-sm leading-6 text-slate-500">Escribe tu nombre una sola vez para identificar tus respuestas dentro de esta sala.</p>
+
+                    <form class="mt-8 space-y-5" data-name-form>
+                        <div>
+                            <label for="question_author_name" class="mb-2 block text-sm font-medium text-slate-700">Nombre completo</label>
+                            <input id="question_author_name" type="text" class="field-input" placeholder="Ej. Camila Rojas Perez" data-author-name required>
+                        </div>
+
+                        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                            <button type="button" class="btn-secondary" data-close-name-modal>Continuar despues</button>
+                            <button type="submit" class="btn-primary">Guardar nombre</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
+
+        @if (! $room->isClosed() && $room->isNoteRoom())
             <div class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" data-note-modal>
                 <div class="absolute inset-0" data-close-note-modal></div>
 

@@ -19,6 +19,8 @@ class NoteController extends Controller
 
     public function store(Request $request, Room $room): RedirectResponse|JsonResponse
     {
+        abort_unless($room->isNoteRoom(), 404);
+
         if ($room->isClosed()) {
             return $request->expectsJson()
                 ? response()->json(['message' => 'Esta sala esta cerrada y ya no recibe nuevas notas.'], 422)
@@ -79,6 +81,7 @@ class NoteController extends Controller
 
     public function react(Request $request, Room $room, Note $note): RedirectResponse|JsonResponse
     {
+        abort_unless($room->isNoteRoom(), 404);
         abort_unless($note->room_id === $room->id, 404);
 
         if (! $room->allow_reactions || ! $note->is_visible) {
@@ -110,6 +113,7 @@ class NoteController extends Controller
 
     public function toggleVisibility(Room $room, Note $note): RedirectResponse
     {
+        abort_unless($room->isNoteRoom(), 404);
         abort_unless($note->room_id === $room->id, 404);
 
         $note->update([
@@ -121,6 +125,7 @@ class NoteController extends Controller
 
     public function destroy(Room $room, Note $note): RedirectResponse
     {
+        abort_unless($room->isNoteRoom(), 404);
         abort_unless($note->room_id === $room->id, 404);
 
         $note->delete();

@@ -1,4 +1,4 @@
-<x-layouts.app title="Muro de notas para estudiantes" description="Crea salas publicas para recibir notas y comentarios de tus estudiantes.">
+<x-layouts.app title="Salas interactivas para estudiantes" description="Crea salas publicas para recibir notas o preguntas de tus estudiantes.">
     <main class="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
         <section class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <div class="hero-card p-8 sm:p-10">
@@ -6,10 +6,10 @@
                     Publico para estudiantes, privado para docente
                 </span>
                 <h1 class="mt-6 max-w-3xl font-[var(--font-display)] text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">
-                    Crea un muro compartible para que tu clase deje notas en segundos.
+                    Crea salas compartibles para recibir notas o respuestas en segundos.
                 </h1>
                 <p class="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-                    Genera una sala, comparte el enlace publico con tu grupo y conserva un enlace secreto para moderar, exportar y administrar el tablero.
+                    Genera una sala, comparte el enlace publico con tu grupo y conserva un enlace secreto para moderar, exportar y administrar el contenido.
                 </p>
 
                 <div class="mt-8 grid gap-4 sm:grid-cols-3">
@@ -23,7 +23,7 @@
                     </div>
                     <div class="rounded-3xl bg-white px-5 py-5 shadow-sm ring-1 ring-slate-200">
                         <p class="text-xs uppercase tracking-[0.25em] text-slate-400">3</p>
-                        <p class="mt-3 text-lg font-semibold text-slate-900">Llegan las notas</p>
+                        <p class="mt-3 text-lg font-semibold text-slate-900">Llegan respuestas</p>
                     </div>
                 </div>
             </div>
@@ -47,6 +47,18 @@
                         <label for="description" class="mb-2 block text-sm font-medium text-slate-700">Descripcion corta</label>
                         <textarea id="description" name="description" rows="3" class="field-input" placeholder="Ej. Problemas reales detectados por los estudiantes">{{ old('description') }}</textarea>
                         @error('description')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="room_type" class="mb-2 block text-sm font-medium text-slate-700">Tipo de sala</label>
+                        <select id="room_type" name="room_type" class="field-input" required>
+                            @foreach (\App\Models\Room::TYPES as $key => $label)
+                                <option value="{{ $key }}" @selected(old('room_type', 'notes') === $key)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('room_type')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
@@ -92,14 +104,14 @@
                                     <h3 class="mt-3 text-xl font-bold text-slate-950">{{ $room->name }}</h3>
                                 </div>
                                 <span class="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
-                                    {{ $room->notes_count }} notas
+                                    {{ $room->isQuestionRoom() ? $room->questions_count.' preguntas' : $room->notes_count.' notas' }}
                                 </span>
                             </div>
                             @if ($room->description)
                                 <p class="mt-4 line-clamp-3 text-sm leading-6 text-slate-600">{{ $room->description }}</p>
                             @endif
                             <div class="mt-6 flex items-center justify-between">
-                                <p class="text-sm font-semibold text-slate-950 group-hover:text-orange-700">Abrir sala publica</p>
+                                <p class="text-sm font-semibold text-slate-950 group-hover:text-orange-700">{{ $room->typeLabel() }}</p>
                                 <span class="text-xs uppercase tracking-[0.2em] text-slate-400">{{ \App\Models\Room::THEMES[$room->theme]['name'] ?? 'Theme' }}</span>
                             </div>
                         </a>

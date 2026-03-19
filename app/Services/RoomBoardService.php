@@ -12,6 +12,10 @@ class RoomBoardService
 {
     public function publicPayload(Request $request, Room $room): array
     {
+        if ($room->isQuestionRoom()) {
+            return $this->questionPayload($room, $request);
+        }
+
         $filters = [
             'q' => trim((string) $request->string('q')),
             'category' => (string) $request->string('category'),
@@ -70,6 +74,21 @@ class RoomBoardService
 
     public function boardSignature(Room $room): string
     {
+        if ($room->isQuestionRoom()) {
+            $lastQuestion = $room->questions()->latest('updated_at')->first();
+            $lastAnswer = $room->questions()
+                ->join('question_answers', 'questions.id', '=', 'question_answers.question_id')
+                ->latest('question_answers.updated_at')
+                ->value('question_answers.updated_at');
+
+            return sha1(json_encode([
+                optional($room->updated_at)->toIso8601String(),
+                $room->questions()->count(),
+                optional($lastQuestion?->updated_at)->toIso8601String(),
+                $lastAnswer ? Carbon::parse($lastAnswer)->toIso8601String() : null,
+            ]));
+        }
+
         $lastNote = $room->notes()->latest('updated_at')->first();
         $lastVote = $room->notes()
             ->join('note_votes', 'notes.id', '=', 'note_votes.note_id')
@@ -82,5 +101,28 @@ class RoomBoardService
             optional($lastNote?->updated_at)->toIso8601String(),
             $lastVote ? Carbon::parse($lastVote)->toIso8601String() : null,
         ]));
+    }
+
+    private function questionPayload(Room $room, Request $request): array
+    {
+        $participantKey = trim((string) $request->string('participant_key'));
+
+        $questions = $room->questions()
+            ->where('is_active', true)
+            ->withCount('answers')
+            ->with([
+                'answers' => function ($query) {
+                    $query->latest();
+                },
+            ])
+            ->get();
+
+        return [
+            'room' => $room,
+            'questions' => $questions,
+            'theme' => $room->themeConfig(),
+            'boardSignature' => $this->boardSignature($room),
+            'participantKey' => $participantKey,
+        ];
     }
 }

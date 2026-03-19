@@ -20,6 +20,13 @@ class RoomExportService
             ->get();
     }
 
+    public function exportableQuestionAnswers(Room $room): Collection
+    {
+        return $room->questions()
+            ->with(['answers' => fn ($query) => $query->latest()])
+            ->get();
+    }
+
     public function qrSvg(Room $room): string
     {
         $qrCode = new QrCode(

@@ -24,6 +24,7 @@ class RoomService
             'description' => $validated['description'] ?: null,
             'slug' => $candidate,
             'admin_token' => Str::lower(Str::random(32)),
+            'room_type' => $validated['room_type'],
             'theme' => $validated['theme'],
             'is_open' => true,
             'allow_anonymous' => true,
@@ -34,9 +35,17 @@ class RoomService
 
     public function teacherPayload(Room $room): array
     {
-        $room->load([
-            'notes' => fn ($query) => $query->withCount('votes')->latest(),
-        ]);
+        if ($room->isQuestionRoom()) {
+            $room->load([
+                'questions' => fn ($query) => $query
+                    ->withCount('answers')
+                    ->with(['answers' => fn ($answerQuery) => $answerQuery->latest()]),
+            ]);
+        } else {
+            $room->load([
+                'notes' => fn ($query) => $query->withCount('votes')->latest(),
+            ]);
+        }
 
         return [
             'room' => $room,
@@ -48,16 +57,22 @@ class RoomService
     {
         $room->update([
             'theme' => $validated['theme'],
-            'allow_anonymous' => $request->boolean('allow_anonymous'),
-            'allow_reactions' => $request->boolean('allow_reactions'),
-            'allow_one_note_per_participant' => $request->boolean('allow_one_note_per_participant'),
             'is_open' => $request->boolean('is_open'),
             'closes_at' => filled($validated['closes_at'] ?? null) ? Carbon::parse($validated['closes_at']) : null,
+            'allow_anonymous' => $room->isNoteRoom() ? $request->boolean('allow_anonymous') : false,
+            'allow_reactions' => $room->isNoteRoom() ? $request->boolean('allow_reactions') : false,
+            'allow_one_note_per_participant' => $room->isNoteRoom() ? $request->boolean('allow_one_note_per_participant') : false,
         ]);
     }
 
     public function clear(Room $room): void
     {
+        if ($room->isQuestionRoom()) {
+            $room->questions()->delete();
+
+            return;
+        }
+
         $room->notes()->delete();
     }
 }

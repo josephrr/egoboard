@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Note;
+use App\Models\Question;
+use App\Models\QuestionAnswer;
 use App\Models\Room;
 use App\Services\RoomBoardService;
 use App\Services\RoomExportService;
@@ -26,6 +28,7 @@ class RoomController extends Controller
     {
         $rooms = Room::query()
             ->withCount('notes')
+            ->withCount('questions')
             ->latest()
             ->take(6)
             ->get();
@@ -38,6 +41,7 @@ class RoomController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:240'],
+            'room_type' => ['required', 'string', 'in:'.implode(',', array_keys(Room::TYPES))],
             'theme' => ['required', 'string', 'in:'.implode(',', array_keys(Room::THEMES))],
         ]);
 
@@ -59,7 +63,7 @@ class RoomController extends Controller
 
         return response()->json([
             'signature' => $this->roomBoardService->boardSignature($room),
-            'html' => view('rooms.partials.board', $payload)->render(),
+            'html' => view($room->isQuestionRoom() ? 'rooms.partials.question-board' : 'rooms.partials.board', $payload)->render(),
         ]);
     }
 
@@ -113,20 +117,37 @@ class RoomController extends Controller
         return response()->streamDownload(function () use ($room) {
             $handle = fopen('php://output', 'w');
 
-            fputcsv($handle, ['Nombre', 'Categoria', 'Mensaje', 'Visible', 'Anonimo', 'Votos', 'Fecha']);
+            if ($room->isQuestionRoom()) {
+                fputcsv($handle, ['Pregunta', 'Tipo', 'Nombre', 'Respuesta', 'Fecha']);
 
-            $this->roomExportService->exportableNotes($room)
-                ->each(function (Note $note) use ($handle) {
-                    fputcsv($handle, [
-                        $note->author_name,
-                        Note::CATEGORIES[$note->category] ?? $note->category,
-                        $note->message,
-                        $note->is_visible ? 'si' : 'no',
-                        $note->is_anonymous ? 'si' : 'no',
-                        $note->votes_count,
-                        $note->created_at?->toDateTimeString(),
-                    ]);
-                });
+                $this->roomExportService->exportableQuestionAnswers($room)
+                    ->each(function (Question $question) use ($handle) {
+                        $question->answers->each(function (QuestionAnswer $answer) use ($handle, $question) {
+                            fputcsv($handle, [
+                                $question->prompt,
+                                Question::TYPES[$question->question_type] ?? $question->question_type,
+                                $answer->author_name,
+                                $answer->displayAnswer(),
+                                $answer->created_at?->toDateTimeString(),
+                            ]);
+                        });
+                    });
+            } else {
+                fputcsv($handle, ['Nombre', 'Categoria', 'Mensaje', 'Visible', 'Anonimo', 'Votos', 'Fecha']);
+
+                $this->roomExportService->exportableNotes($room)
+                    ->each(function (Note $note) use ($handle) {
+                        fputcsv($handle, [
+                            $note->author_name,
+                            Note::CATEGORIES[$note->category] ?? $note->category,
+                            $note->message,
+                            $note->is_visible ? 'si' : 'no',
+                            $note->is_anonymous ? 'si' : 'no',
+                            $note->votes_count,
+                            $note->created_at?->toDateTimeString(),
+                        ]);
+                    });
+            }
 
             fclose($handle);
         }, $filename, [
@@ -136,11 +157,10 @@ class RoomController extends Controller
 
     public function exportPrint(Room $room): View
     {
-        $notes = $this->roomExportService->exportableNotes($room);
-
         return view('rooms.print', [
             'room' => $room,
-            'notes' => $notes,
+            'notes' => $room->isNoteRoom() ? $this->roomExportService->exportableNotes($room) : collect(),
+            'questions' => $room->isQuestionRoom() ? $this->roomExportService->exportableQuestionAnswers($room) : collect(),
             'theme' => $room->themeConfig(),
         ]);
     }

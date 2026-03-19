@@ -82,6 +82,7 @@
 
             .footer {
                 display: flex;
+                flex-wrap: wrap;
                 justify-content: space-between;
                 gap: 12px;
                 color: #64748b;
@@ -118,22 +119,39 @@
             @if ($room->description)
                 <p class="meta">{{ $room->description }}</p>
             @endif
-            <p class="meta">Notas exportadas: {{ $notes->count() }}</p>
+            <p class="meta">Tipo: {{ $room->typeLabel() }}</p>
+            <p class="meta">{{ $room->isQuestionRoom() ? 'Preguntas exportadas: '.$questions->count() : 'Notas exportadas: '.$notes->count() }}</p>
             <p class="meta">Generado: {{ now()->format('d/m/Y H:i') }}</p>
         </header>
 
         <section class="grid">
-            @foreach ($notes as $note)
-                <article class="card">
-                    <span class="badge">{{ \App\Models\Note::CATEGORIES[$note->category] ?? $note->category }}</span>
-                    <p class="message">{{ $note->message }}</p>
-                    <div class="footer">
-                        <span>{{ $note->displayName() }}</span>
-                        <span>{{ $note->votes_count }} votos</span>
-                        <span>{{ $note->created_at?->format('d/m/Y H:i') }}</span>
-                    </div>
-                </article>
-            @endforeach
+            @if ($room->isQuestionRoom())
+                @foreach ($questions as $question)
+                    <article class="card">
+                        <span class="badge">{{ \App\Models\Question::TYPES[$question->question_type] ?? $question->question_type }}</span>
+                        <p class="message">{{ $question->prompt }}</p>
+                        @foreach ($question->answers as $answer)
+                            <div class="footer">
+                                <span>{{ $answer->author_name }}</span>
+                                <span>{{ $answer->displayAnswer() }}</span>
+                                <span>{{ $answer->created_at?->format('d/m/Y H:i') }}</span>
+                            </div>
+                        @endforeach
+                    </article>
+                @endforeach
+            @else
+                @foreach ($notes as $note)
+                    <article class="card">
+                        <span class="badge">{{ \App\Models\Note::CATEGORIES[$note->category] ?? $note->category }}</span>
+                        <p class="message">{{ $note->message }}</p>
+                        <div class="footer">
+                            <span>{{ $note->displayName() }}</span>
+                            <span>{{ $note->votes_count }} votos</span>
+                            <span>{{ $note->created_at?->format('d/m/Y H:i') }}</span>
+                        </div>
+                    </article>
+                @endforeach
+            @endif
         </section>
     </body>
 </html>

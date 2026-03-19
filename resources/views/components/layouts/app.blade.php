@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{{ $title ?? 'Muro de notas' }}</title>
         <meta name="description" content="{{ $description ?? 'Salas publicas para que tus estudiantes dejen notas sin iniciar sesion.' }}">
+        <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=sora:400,500,600,700,800|space-grotesk:500,700" rel="stylesheet" />
         @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))

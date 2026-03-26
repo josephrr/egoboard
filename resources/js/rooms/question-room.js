@@ -18,6 +18,8 @@ export const initQuestionRoom = () => {
     const closeNameButtons = wall.querySelectorAll('[data-close-name-modal]');
     let currentBoardSignature = wall.dataset.boardSignature;
     let isRefreshingBoard = false;
+    let hasPendingDraft = false;
+    let hasShownDeferredRefreshNotice = false;
 
     const storage = createNoteWallStorage(roomSlug);
 
@@ -88,6 +90,36 @@ export const initQuestionRoom = () => {
         });
     };
 
+    const markDraftState = () => {
+        hasPendingDraft = true;
+    };
+
+    const clearDraftState = () => {
+        hasPendingDraft = false;
+        hasShownDeferredRefreshNotice = false;
+    };
+
+    const hasActiveDraft = () => {
+        if (hasPendingDraft) {
+            return true;
+        }
+
+        const activeElement = document.activeElement;
+
+        if (activeElement instanceof HTMLElement && activeElement.closest('[data-question-answer-form]')) {
+            return true;
+        }
+
+        return false;
+    };
+
+    const bindDraftTracking = () => {
+        wall.querySelectorAll('[data-question-draft-field]').forEach((field) => {
+            field.addEventListener('input', markDraftState);
+            field.addEventListener('change', markDraftState);
+        });
+    };
+
     const saveAuthorName = () => {
         if (!(authorInput instanceof HTMLInputElement)) {
             return false;
@@ -109,8 +141,12 @@ export const initQuestionRoom = () => {
         return true;
     };
 
-    const refreshBoard = async () => {
+    const refreshBoard = async ({ manual = false } = {}) => {
         if (!boardUrl || isRefreshingBoard) {
+            return false;
+        }
+
+        if (!manual && hasActiveDraft()) {
             return false;
         }
 
@@ -145,14 +181,22 @@ export const initQuestionRoom = () => {
             wall.dataset.boardSignature = currentBoardSignature;
 
             bindAuthorInput();
+            bindDraftTracking();
 
             if (authorInput instanceof HTMLInputElement) {
                 authorInput.value = currentName;
             }
 
             refreshParticipantInputs();
+            clearDraftState();
             wall.querySelectorAll('[data-open-name-modal]').forEach((button) => {
                 button.addEventListener('click', openNameModal);
+            });
+
+            wall.querySelectorAll('[data-refresh-question-board]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    refreshBoard({ manual: true });
+                });
             });
 
             return true;
@@ -164,9 +208,15 @@ export const initQuestionRoom = () => {
     storage.ensureParticipantKey();
     bindAuthorInput();
     refreshParticipantInputs();
+    bindDraftTracking();
 
     openNameButtons.forEach((button) => button.addEventListener('click', openNameModal));
     closeNameButtons.forEach((button) => button.addEventListener('click', closeNameModal));
+    wall.querySelectorAll('[data-refresh-question-board]').forEach((button) => {
+        button.addEventListener('click', () => {
+            refreshBoard({ manual: true });
+        });
+    });
 
     if (nameForm instanceof HTMLFormElement) {
         nameForm.addEventListener('submit', (event) => {
@@ -211,6 +261,7 @@ export const initQuestionRoom = () => {
                 return;
             }
 
+            clearDraftState();
             await refreshBoard();
             showStatus(payload.message ?? 'Respuesta guardada correctamente.');
         } catch (error) {
@@ -246,7 +297,12 @@ export const initQuestionRoom = () => {
                 return;
             }
 
-            await refreshBoard();
+            const refreshed = await refreshBoard();
+
+            if (!refreshed && hasActiveDraft() && !hasShownDeferredRefreshNotice) {
+                hasShownDeferredRefreshNotice = true;
+                showStatus('Hay respuestas nuevas, pero la actualizacion automatica se pauso mientras escribes. Usa "Recargar respuestas" cuando termines.', 'success');
+            }
         } catch (error) {
             console.error('No se pudo actualizar la sala de preguntas.', error);
         }

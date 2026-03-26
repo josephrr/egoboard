@@ -86,7 +86,10 @@
                     <p class="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">Salas recientes</p>
                     <h2 class="mt-2 font-[var(--font-display)] text-3xl font-bold text-slate-950">Continua donde te quedaste</h2>
                 </div>
-                <p class="text-sm text-slate-500">Las ultimas salas creadas aparecen aqui para volver a abrirlas rapido.</p>
+                <div class="flex flex-col items-start gap-3 sm:items-end">
+                    <p class="text-sm text-slate-500">Las ultimas salas creadas aparecen aqui para volver a abrirlas rapido.</p>
+                    <a href="{{ route('rooms.teacher.index') }}" class="btn-secondary">Ver todas las salas</a>
+                </div>
             </div>
 
             @if ($rooms->isEmpty())

@@ -11,6 +11,31 @@ test('home page loads', function () {
     $response->assertSee('Crea salas compartibles');
 });
 
+test('teacher room listing shows all created rooms', function () {
+    collect(range(1, 8))->each(function (int $index) {
+        Room::create([
+            'name' => 'Sala '.$index,
+            'slug' => 'sala-'.$index,
+            'description' => 'Sala de ejemplo '.$index,
+            'admin_token' => 'teacher-token-'.$index,
+            'room_type' => $index % 2 === 0 ? 'questions' : 'notes',
+            'theme' => 'sunrise',
+            'is_open' => true,
+            'allow_anonymous' => true,
+            'allow_reactions' => true,
+            'allow_one_note_per_participant' => false,
+        ]);
+    });
+
+    $response = $this->get('/docente/listadoSalas');
+
+    $response->assertOk();
+    $response->assertSee('Listado completo de salas');
+    $response->assertSee('Sala 1');
+    $response->assertSee('Sala 8');
+    $response->assertSee('Panel docente');
+});
+
 test('room can be created', function () {
     $response = $this->post('/salas', [
         'name' => 'Muro de clase',

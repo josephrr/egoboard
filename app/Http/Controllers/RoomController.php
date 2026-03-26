@@ -36,6 +36,17 @@ class RoomController extends Controller
         return view('rooms.index', compact('rooms'));
     }
 
+    public function teacherIndex(): View
+    {
+        $rooms = Room::query()
+            ->withCount('notes')
+            ->withCount('questions')
+            ->latest()
+            ->get();
+
+        return view('rooms.teacher-index', compact('rooms'));
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([

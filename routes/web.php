@@ -18,6 +18,7 @@ Route::post('/salas/{room:slug}/notas/{note}/reacciones', [NoteController::class
     ->scopeBindings()
     ->name('rooms.notes.react');
 Route::get('/salas/{room:slug}/estado', [RoomController::class, 'state'])->name('rooms.state');
+Route::get('/docente/listadoSalas', [RoomController::class, 'teacherIndex'])->name('rooms.teacher.index');
 Route::get('/docente/{room:admin_token}', [RoomController::class, 'teacher'])->name('rooms.teacher');
 Route::get('/docente/{room:admin_token}/qr.svg', [RoomController::class, 'qr'])
     ->name('rooms.qr');

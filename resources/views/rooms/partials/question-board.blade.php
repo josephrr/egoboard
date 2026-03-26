@@ -4,7 +4,10 @@
             <p class="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">Participacion</p>
             <h2 class="mt-2 font-[var(--font-display)] text-3xl font-bold text-slate-950">Responde las preguntas</h2>
         </div>
-        <p class="text-sm text-slate-500">{{ $questions->count() }} preguntas activas</p>
+        <div class="flex flex-col items-start gap-3 sm:items-end">
+            <p class="text-sm text-slate-500">{{ $questions->count() }} preguntas activas</p>
+            <button type="button" class="btn-secondary" data-refresh-question-board>Recargar respuestas</button>
+        </div>
     </div>
 
     <div class="hero-card p-6 sm:p-8">
@@ -46,13 +49,13 @@
                         @if ($question->question_type === 'open')
                             <div>
                                 <label for="answer_text_{{ $question->id }}" class="mb-2 block text-sm font-medium text-slate-700">Tu respuesta</label>
-                                <textarea id="answer_text_{{ $question->id }}" name="answer_text" rows="4" class="field-input" placeholder="Escribe tu respuesta">{{ old('answer_text', $existingAnswer?->answer_text) }}</textarea>
+                                <textarea id="answer_text_{{ $question->id }}" name="answer_text" rows="4" class="field-input" placeholder="Escribe tu respuesta" data-question-draft-field>{{ old('answer_text', $existingAnswer?->answer_text) }}</textarea>
                             </div>
                         @else
                             <div class="grid gap-3">
                                 @foreach ($resolvedOptions as $option)
                                     <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                                        <input type="radio" name="selected_option" value="{{ $option }}" class="h-4 w-4 border-slate-300 text-slate-950" @checked(old('selected_option', $existingAnswer?->selected_option) === $option)>
+                                        <input type="radio" name="selected_option" value="{{ $option }}" class="h-4 w-4 border-slate-300 text-slate-950" data-question-draft-field @checked(old('selected_option', $existingAnswer?->selected_option) === $option)>
                                         <span>{{ $option }}</span>
                                     </label>
                                 @endforeach

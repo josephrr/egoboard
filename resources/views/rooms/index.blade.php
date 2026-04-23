@@ -33,7 +33,7 @@
                 <h2 class="mt-3 font-[var(--font-display)] text-3xl font-bold text-slate-950">Prepara tu enlace</h2>
                 <p class="mt-3 text-sm leading-6 text-slate-500">Al crearla recibiras un link publico para tus estudiantes y otro privado para ti.</p>
 
-                <form method="POST" action="{{ route('rooms.store') }}" class="mt-8 space-y-5">
+                <form method="POST" action="{{ route('rooms.store') }}" enctype="multipart/form-data" class="mt-8 space-y-5" data-room-create-form>
                     @csrf
                     <div>
                         <label for="name" class="mb-2 block text-sm font-medium text-slate-700">Nombre de la sala</label>
@@ -53,12 +53,21 @@
 
                     <div>
                         <label for="room_type" class="mb-2 block text-sm font-medium text-slate-700">Tipo de sala</label>
-                        <select id="room_type" name="room_type" class="field-input" required>
+                        <select id="room_type" name="room_type" class="field-input" required data-room-type-select>
                             @foreach (\App\Models\Room::TYPES as $key => $label)
                                 <option value="{{ $key }}" @selected(old('room_type', 'notes') === $key)>{{ $label }}</option>
                             @endforeach
                         </select>
                         @error('room_type')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div data-canvas-background-field @class(['hidden' => old('room_type', 'notes') !== 'canvas'])>
+                        <label for="background_image" class="mb-2 block text-sm font-medium text-slate-700">Imagen de fondo (opcional)</label>
+                        <input id="background_image" name="background_image" type="file" accept="image/png,image/jpeg,image/webp" class="field-input">
+                        <p class="mt-2 text-xs text-slate-500">Se mostrara como plantilla detras de todos los dibujos. Maximo 3 MB.</p>
+                        @error('background_image')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
@@ -77,6 +86,18 @@
 
                     <button type="submit" class="btn-primary w-full">Crear sala y obtener enlace</button>
                 </form>
+                <script>
+                    (() => {
+                        const form = document.querySelector('[data-room-create-form]');
+                        if (!form) return;
+                        const select = form.querySelector('[data-room-type-select]');
+                        const field = form.querySelector('[data-canvas-background-field]');
+                        if (!select || !field) return;
+                        const sync = () => field.classList.toggle('hidden', select.value !== 'canvas');
+                        select.addEventListener('change', sync);
+                        sync();
+                    })();
+                </script>
             </div>
         </section>
 
@@ -107,7 +128,13 @@
                                     <h3 class="mt-3 text-xl font-bold text-slate-950">{{ $room->name }}</h3>
                                 </div>
                                 <span class="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
-                                    {{ $room->isQuestionRoom() ? $room->questions_count.' preguntas' : $room->notes_count.' notas' }}
+                                    @if ($room->isQuestionRoom())
+                                        {{ $room->questions_count }} preguntas
+                                    @elseif ($room->isCanvasRoom())
+                                        {{ $room->canvas_drawings_count ?? 0 }} dibujos
+                                    @else
+                                        {{ $room->notes_count }} notas
+                                    @endif
                                 </span>
                             </div>
                             @if ($room->description)

@@ -26,6 +26,7 @@ class RoomService
             'admin_token' => Str::lower(Str::random(32)),
             'room_type' => $validated['room_type'],
             'theme' => $validated['theme'],
+            'background_image_path' => $validated['background_image_path'] ?? null,
             'is_open' => true,
             'allow_anonymous' => true,
             'allow_reactions' => true,
@@ -40,6 +41,12 @@ class RoomService
                 'questions' => fn ($query) => $query
                     ->withCount('answers')
                     ->with(['answers' => fn ($answerQuery) => $answerQuery->latest()]),
+            ]);
+        } elseif ($room->isCanvasRoom()) {
+            $room->load([
+                'canvasDrawings' => fn ($query) => $query
+                    ->select(['id', 'room_id', 'author_name', 'participant_key', 'preview_png', 'updated_at'])
+                    ->latest('updated_at'),
             ]);
         } else {
             $room->load([
@@ -69,6 +76,12 @@ class RoomService
     {
         if ($room->isQuestionRoom()) {
             $room->questions()->delete();
+
+            return;
+        }
+
+        if ($room->isCanvasRoom()) {
+            $room->canvasDrawings()->delete();
 
             return;
         }

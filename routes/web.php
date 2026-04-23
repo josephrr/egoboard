@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CanvasDrawingController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\QuestionAnswerController;
 use App\Http\Controllers\QuestionController;
@@ -17,6 +18,8 @@ Route::post('/salas/{room:slug}/preguntas/{question}/respuestas', [QuestionAnswe
 Route::post('/salas/{room:slug}/notas/{note}/reacciones', [NoteController::class, 'react'])
     ->scopeBindings()
     ->name('rooms.notes.react');
+Route::get('/salas/{room:slug}/canvas/mio', [CanvasDrawingController::class, 'mine'])->name('rooms.canvas.mine');
+Route::post('/salas/{room:slug}/canvas', [CanvasDrawingController::class, 'store'])->name('rooms.canvas.store');
 Route::get('/salas/{room:slug}/estado', [RoomController::class, 'state'])->name('rooms.state');
 Route::get('/docente/listadoSalas', [RoomController::class, 'teacherIndex'])->name('rooms.teacher.index');
 Route::get('/docente/{room:admin_token}', [RoomController::class, 'teacher'])->name('rooms.teacher');
@@ -36,3 +39,11 @@ Route::patch('/docente/{room:admin_token}/notas/{note}', [NoteController::class,
 Route::delete('/docente/{room:admin_token}/notas/{note}', [NoteController::class, 'destroy'])
     ->scopeBindings()
     ->name('rooms.notes.destroy');
+Route::get('/docente/{room:admin_token}/canvas/{drawing}/editar', [CanvasDrawingController::class, 'editView'])
+    ->name('rooms.canvas.edit');
+Route::get('/docente/{room:admin_token}/canvas/{drawing}', [CanvasDrawingController::class, 'show'])
+    ->name('rooms.canvas.show');
+Route::patch('/docente/{room:admin_token}/canvas/{drawing}', [CanvasDrawingController::class, 'teacherUpdate'])
+    ->name('rooms.canvas.update');
+Route::delete('/docente/{room:admin_token}/canvas/{drawing}', [CanvasDrawingController::class, 'destroy'])
+    ->name('rooms.canvas.destroy');

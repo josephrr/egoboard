@@ -3,6 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>{{ $title ?? 'Muro de notas' }}</title>
         <meta name="description" content="{{ $description ?? 'Salas publicas para que tus estudiantes dejen notas sin iniciar sesion.' }}">
         <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">

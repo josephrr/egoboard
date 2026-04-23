@@ -1,5 +1,8 @@
 @push('page_vite')
     @vite('resources/js/pages/room-teacher.js')
+    @if ($room->isCanvasRoom())
+        @vite('resources/js/pages/room-teacher-canvas.js')
+    @endif
 @endpush
 
 <x-layouts.app :title="$room->name.' | Panel docente'" :description="'Panel privado para administrar la sala '.$room->name">
@@ -19,8 +22,10 @@
 
                 <div class="flex flex-wrap gap-3">
                     <a href="{{ route('rooms.show', $room) }}" class="btn-primary">Abrir vista publica</a>
-                    <a href="{{ route('rooms.export.csv', $room->admin_token) }}" class="btn-secondary">Exportar CSV</a>
-                    <a href="{{ route('rooms.export.print', $room->admin_token) }}" class="btn-secondary" target="_blank" rel="noopener noreferrer">Vista PDF</a>
+                    @if (! $room->isCanvasRoom())
+                        <a href="{{ route('rooms.export.csv', $room->admin_token) }}" class="btn-secondary">Exportar CSV</a>
+                        <a href="{{ route('rooms.export.print', $room->admin_token) }}" class="btn-secondary" target="_blank" rel="noopener noreferrer">Vista PDF</a>
+                    @endif
                 </div>
             </div>
         </section>
@@ -37,6 +42,9 @@
                         @if ($room->isQuestionRoom())
                             <x-ui.stat-card label="Preguntas" :value="$room->questions->count()" />
                             <x-ui.stat-card label="Respuestas" :value="$room->questions->sum('answers_count')" />
+                        @elseif ($room->isCanvasRoom())
+                            <x-ui.stat-card label="Dibujos" :value="$room->canvasDrawings->count()" />
+                            <x-ui.stat-card label="Ultima actualizacion" :value="optional($room->canvasDrawings->first())->updated_at?->diffForHumans() ?? '—'" />
                         @else
                             <x-ui.stat-card label="Notas" :value="$room->notes->count()" />
                             <x-ui.stat-card label="Visibles" :value="$room->notes->where('is_visible', true)->count()" />
@@ -82,7 +90,14 @@
                         <input id="closes_at" name="closes_at" type="datetime-local" class="field-input" value="{{ $room->closes_at?->format('Y-m-d\TH:i') }}">
                     </div>
 
-                    <x-rooms.setting-toggle name="is_open" :label="$room->isQuestionRoom() ? 'Sala abierta para nuevas respuestas' : 'Sala abierta para nuevas notas'" :checked="$room->is_open" />
+                    @php
+                        $openLabel = match (true) {
+                            $room->isQuestionRoom() => 'Sala abierta para nuevas respuestas',
+                            $room->isCanvasRoom() => 'Sala abierta para nuevos dibujos',
+                            default => 'Sala abierta para nuevas notas',
+                        };
+                    @endphp
+                    <x-rooms.setting-toggle name="is_open" :label="$openLabel" :checked="$room->is_open" />
                     @if ($room->isNoteRoom())
                         <x-rooms.setting-toggle name="allow_anonymous" label="Permitir notas anonimas" :checked="$room->allow_anonymous" />
                         <x-rooms.setting-toggle name="allow_reactions" label="Permitir reacciones" :checked="$room->allow_reactions" />
@@ -92,15 +107,29 @@
                     <button type="submit" class="btn-primary w-full">Guardar configuracion</button>
                 </form>
 
-                <form method="POST" action="{{ route('rooms.clear', $room->admin_token) }}" class="mt-4" data-confirm-message="{{ $room->isQuestionRoom() ? 'Esto eliminara todas las preguntas y respuestas de la sala.' : 'Esto eliminara todas las notas de la sala.' }}">
+                @php
+                    $clearMessage = match (true) {
+                        $room->isQuestionRoom() => 'Esto eliminara todas las preguntas y respuestas de la sala.',
+                        $room->isCanvasRoom() => 'Esto eliminara todos los dibujos de la sala.',
+                        default => 'Esto eliminara todas las notas de la sala.',
+                    };
+                    $clearLabel = match (true) {
+                        $room->isQuestionRoom() => 'Eliminar preguntas y respuestas',
+                        $room->isCanvasRoom() => 'Eliminar todos los dibujos',
+                        default => 'Limpiar tablero',
+                    };
+                @endphp
+                <form method="POST" action="{{ route('rooms.clear', $room->admin_token) }}" class="mt-4" data-confirm-message="{{ $clearMessage }}">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn-secondary w-full border-rose-200 text-rose-700 hover:bg-rose-50">{{ $room->isQuestionRoom() ? 'Eliminar preguntas y respuestas' : 'Limpiar tablero' }}</button>
+                    <button type="submit" class="btn-secondary w-full border-rose-200 text-rose-700 hover:bg-rose-50">{{ $clearLabel }}</button>
                 </form>
             </div>
         </section>
 
-        @if ($room->isQuestionRoom())
+        @if ($room->isCanvasRoom())
+            @include('rooms.partials.canvas-gallery', ['room' => $room])
+        @elseif ($room->isQuestionRoom())
             <section class="grid gap-6 xl:grid-cols-[0.42fr_0.58fr]">
                 <div class="hero-card p-8">
                     <x-ui.section-heading eyebrow="Nueva pregunta" title="Construye tu actividad" />

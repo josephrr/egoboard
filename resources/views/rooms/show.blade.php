@@ -9,7 +9,9 @@
 
     <main
         class="mx-auto flex min-h-screen w-full max-w-[96rem] flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8 lg:py-12"
-        @if ($room->isNoteRoom())
+        @if ($room->isCanvasRoom())
+            data-canvas-room
+        @elseif ($room->isNoteRoom())
             data-note-wall
         @else
             data-question-room
@@ -58,14 +60,16 @@
         @endif
 
         <div data-board-region>
-            @if ($room->isQuestionRoom())
+            @if ($room->isCanvasRoom())
+                @include('rooms.partials.canvas-board', ['room' => $room, 'myDrawing' => $myDrawing ?? null, 'participantKey' => $participantKey ?? ''])
+            @elseif ($room->isQuestionRoom())
                 @include('rooms.partials.question-board', ['room' => $room, 'questions' => $questions, 'boardSignature' => $boardSignature])
             @else
                 @include('rooms.partials.board', ['room' => $room, 'notes' => $notes, 'boardSignature' => $boardSignature])
             @endif
         </div>
 
-        @if ($room->isQuestionRoom() && ! $room->isClosed())
+        @if (($room->isQuestionRoom() || $room->isCanvasRoom()) && ! $room->isClosed())
             <div class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" data-name-modal>
                 <div class="absolute inset-0" data-close-name-modal></div>
 

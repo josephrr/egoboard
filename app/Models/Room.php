@@ -6,12 +6,14 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Room extends Model
 {
     public const TYPES = [
         'notes' => 'Muro de notas',
         'questions' => 'Sala de preguntas',
+        'canvas' => 'Sala de dibujo',
     ];
 
     protected $fillable = [
@@ -25,6 +27,7 @@ class Room extends Model
         'allow_reactions',
         'allow_one_note_per_participant',
         'theme',
+        'background_image_path',
         'closes_at',
     ];
 
@@ -69,6 +72,11 @@ class Room extends Model
         return $this->notes()->where('is_visible', true);
     }
 
+    public function canvasDrawings(): HasMany
+    {
+        return $this->hasMany(CanvasDrawing::class);
+    }
+
     public function getRouteKeyName(): string
     {
         return 'slug';
@@ -93,9 +101,23 @@ class Room extends Model
         return $this->room_type === 'questions';
     }
 
+    public function isCanvasRoom(): bool
+    {
+        return $this->room_type === 'canvas';
+    }
+
     public function isNoteRoom(): bool
     {
-        return ! $this->isQuestionRoom();
+        return ! $this->isQuestionRoom() && ! $this->isCanvasRoom();
+    }
+
+    public function backgroundImageUrl(): ?string
+    {
+        if (! $this->background_image_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->background_image_path);
     }
 
     public function typeLabel(): string

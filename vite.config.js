@@ -10,6 +10,8 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/pages/room-show.js',
                 'resources/js/pages/room-teacher.js',
+                'resources/js/pages/room-teacher-canvas.js',
+                'resources/js/pages/room-teacher-canvas-edit.js',
                 'resources/js/pages/room-print.js',
             ],
             refresh: true,

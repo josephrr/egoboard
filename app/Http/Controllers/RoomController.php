@@ -29,6 +29,7 @@ class RoomController extends Controller
         $rooms = Room::query()
             ->withCount('notes')
             ->withCount('questions')
+            ->withCount('canvasDrawings')
             ->latest()
             ->take(6)
             ->get();
@@ -41,6 +42,7 @@ class RoomController extends Controller
         $rooms = Room::query()
             ->withCount('notes')
             ->withCount('questions')
+            ->withCount('canvasDrawings')
             ->latest()
             ->get();
 
@@ -54,7 +56,12 @@ class RoomController extends Controller
             'description' => ['nullable', 'string', 'max:240'],
             'room_type' => ['required', 'string', 'in:'.implode(',', array_keys(Room::TYPES))],
             'theme' => ['required', 'string', 'in:'.implode(',', array_keys(Room::THEMES))],
+            'background_image' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:3072'],
         ]);
+
+        if ($validated['room_type'] === 'canvas' && $request->hasFile('background_image')) {
+            $validated['background_image_path'] = $request->file('background_image')->store('canvas-backgrounds', 'public');
+        }
 
         $room = $this->roomService->create($validated);
 
@@ -72,9 +79,15 @@ class RoomController extends Controller
     {
         $payload = $this->roomBoardService->publicPayload($request, $room);
 
+        $partial = match (true) {
+            $room->isQuestionRoom() => 'rooms.partials.question-board',
+            $room->isCanvasRoom() => 'rooms.partials.canvas-board',
+            default => 'rooms.partials.board',
+        };
+
         return response()->json([
             'signature' => $this->roomBoardService->boardSignature($room),
-            'html' => view($room->isQuestionRoom() ? 'rooms.partials.question-board' : 'rooms.partials.board', $payload)->render(),
+            'html' => view($partial, $payload)->render(),
         ]);
     }
 

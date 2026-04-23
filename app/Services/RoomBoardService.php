@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CanvasDrawing;
 use App\Models\Note;
 use App\Models\Room;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,10 @@ class RoomBoardService
     {
         if ($room->isQuestionRoom()) {
             return $this->questionPayload($room, $request);
+        }
+
+        if ($room->isCanvasRoom()) {
+            return $this->canvasPayload($room, $request);
         }
 
         $filters = [
@@ -74,6 +79,17 @@ class RoomBoardService
 
     public function boardSignature(Room $room): string
     {
+        if ($room->isCanvasRoom()) {
+            $count = $room->canvasDrawings()->count();
+            $lastUpdated = $room->canvasDrawings()->latest('updated_at')->value('updated_at');
+
+            return sha1(json_encode([
+                optional($room->updated_at)->toIso8601String(),
+                $count,
+                $lastUpdated ? Carbon::parse($lastUpdated)->toIso8601String() : null,
+            ]));
+        }
+
         if ($room->isQuestionRoom()) {
             $lastQuestion = $room->questions()->latest('updated_at')->first();
             $lastAnswer = $room->questions()
@@ -101,6 +117,25 @@ class RoomBoardService
             optional($lastNote?->updated_at)->toIso8601String(),
             $lastVote ? Carbon::parse($lastVote)->toIso8601String() : null,
         ]));
+    }
+
+    private function canvasPayload(Room $room, Request $request): array
+    {
+        $participantKey = trim((string) $request->string('participant_key'));
+
+        $myDrawing = $participantKey !== ''
+            ? CanvasDrawing::where('room_id', $room->id)
+                ->where('participant_key', $participantKey)
+                ->first()
+            : null;
+
+        return [
+            'room' => $room,
+            'theme' => $room->themeConfig(),
+            'boardSignature' => $this->boardSignature($room),
+            'participantKey' => $participantKey,
+            'myDrawing' => $myDrawing,
+        ];
     }
 
     private function questionPayload(Room $room, Request $request): array

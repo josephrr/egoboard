@@ -47,7 +47,13 @@
                                 <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
                                     <span>{{ $room->typeLabel() }}</span>
                                     <span class="font-semibold text-slate-900">
-                                        {{ $room->isQuestionRoom() ? $room->questions_count.' preguntas' : $room->notes_count.' notas' }}
+                                        @if ($room->isQuestionRoom())
+                                            {{ $room->questions_count }} preguntas
+                                        @elseif ($room->isCanvasRoom())
+                                            {{ $room->canvas_drawings_count ?? 0 }} dibujos
+                                        @else
+                                            {{ $room->notes_count }} notas
+                                        @endif
                                     </span>
                                 </div>
                                 <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
